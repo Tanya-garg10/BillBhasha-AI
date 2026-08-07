@@ -4,8 +4,6 @@ Build a production voice AI agent in 5 minutes. Powered by the fastest TTS on th
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Murf Falcon](https://img.shields.io/badge/TTS-Murf%20Falcon-6366F1)](https://murf.ai/api/docs/text-to-speech/streaming) [![LiveKit](https://img.shields.io/badge/Transport-LiveKit-002cf2)](https://docs.livekit.io) [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 
----
-
 ## Why Murf Falcon
 
 - **55ms model latency** - fastest production TTS
@@ -13,8 +11,6 @@ Build a production voice AI agent in 5 minutes. Powered by the fastest TTS on th
 - **$0.01/1000 characters** - up to 10x cheaper than alternatives
 - **150+ voices** across 35+ languages
 - **99.38% pronunciation accuracy**
-
----
 
 ## Architecture
 
@@ -33,8 +29,6 @@ flowchart LR
     style E fill:#D85A30,stroke:#F0997B,color:#fff
     style F fill:#444441,stroke:#888780,color:#fff
 ```
-
----
 
 ## Quickstart
 
@@ -120,8 +114,6 @@ Then open **http://localhost:3000** in your browser.
 
 You should now see the voice agent UI. Click **Start talking**, allow microphone access, and speak — the agent will respond with Murf Falcon TTS. Ensure your backend and (if using Option B) LiveKit server are running.
 
----
-
 ## Deploy
 
 Want to deploy this beyond localhost? You'll need to deploy **two services**: the backend agent and the frontend. Both must use the same LiveKit project.
@@ -166,8 +158,6 @@ The frontend and backend don't call each other directly — they both connect to
 
 If the agent doesn't connect, double-check that both services point to the same LiveKit project and that the backend is running (check Railway logs).
 
----
-
 ## Change the Use Case
 
 The default system prompt makes this a **customer support agent**. You can change the agent’s behavior by editing the prompt.
@@ -195,8 +185,6 @@ You are a professional receptionist for a medical clinic. Help callers schedule 
 ```
 
 See the Configuration section below for voice, STT, and LLM options.
-
----
 
 ## Configuration
 
@@ -227,8 +215,6 @@ STT is configured in `backend/src/agent.py` in the `AgentSession(stt=...)` call.
 
 Murf Falcon and LiveKit handle audio format internally. For advanced options, see [Murf API docs](https://murf.ai/api/docs) and [LiveKit docs](https://docs.livekit.io).
 
----
-
 ## Project Structure
 
 ```
@@ -258,8 +244,6 @@ For deeper documentation on each part, see:
 - [Backend Documentation](./backend/README.md) — agent pipeline, voice/LLM/STT configuration, testing, deployment
 - [Frontend Documentation](./frontend/README.md) — UI customization, visualizers, theming, component architecture
 
----
-
 ## Links
 
 - [Murf API Docs](https://murf.ai/api/docs)
@@ -270,8 +254,6 @@ For deeper documentation on each part, see:
 - [TTS Latency Benchmarker](https://github.com/sahilsgupta/tts-latency-benchmarker) — run your own p50/p95 tests across providers
 - [Murf Discord](https://discord.gg/FbKAy96Sz7)
 - [Murf Startup Incubator](https://murf.ai/api) — 50M free characters for startups
-
----
 
 ## License
 
