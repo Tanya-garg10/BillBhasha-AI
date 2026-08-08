@@ -8,11 +8,8 @@ import {
   AgentControlBar,
   type AgentControlBarControls,
 } from '@/components/agents-ui/agent-control-bar';
-import { Shimmer } from '@/components/ai-elements/shimmer';
 import { cn } from '@/lib/shadcn/utils';
 import { TileLayout } from './tile-view';
-
-const MotionMessage = motion.create(Shimmer);
 
 const BOTTOM_VIEW_MOTION_PROPS: MotionProps = {
   variants: {
@@ -50,30 +47,6 @@ const CHAT_MOTION_PROPS: MotionProps = {
         delay: 0.2,
         ease: 'easeOut',
         duration: 0.3,
-      },
-    },
-  },
-  initial: 'hidden',
-  animate: 'visible',
-  exit: 'hidden',
-};
-
-const SHIMMER_MOTION_PROPS: MotionProps = {
-  variants: {
-    visible: {
-      opacity: 1,
-      transition: {
-        ease: 'easeIn',
-        duration: 0.5,
-        delay: 0.8,
-      },
-    },
-    hidden: {
-      opacity: 0,
-      transition: {
-        ease: 'easeIn',
-        duration: 0.5,
-        delay: 0,
       },
     },
   },
@@ -175,6 +148,8 @@ export function AgentSessionView_01({
   className,
   ...props
 }: React.ComponentProps<'section'> & AgentSessionView_01Props) {
+  void preConnectMessage;
+  void isPreConnectBufferEnabled;
   const session = useSessionContext();
   const { messages } = useSessionMessages(session);
   const [chatOpen, setChatOpen] = useState(false);
@@ -241,22 +216,45 @@ export function AgentSessionView_01({
         {...BOTTOM_VIEW_MOTION_PROPS}
         className="absolute inset-x-3 bottom-0 z-50 md:inset-x-12"
       >
-        {/* Pre-connect message */}
-        {isPreConnectBufferEnabled && (
-          <AnimatePresence>
-            {messages.length === 0 && (
-              <MotionMessage
-                key="pre-connect-message"
-                duration={2}
-                aria-hidden={messages.length > 0}
-                {...SHIMMER_MOTION_PROPS}
-                className="pointer-events-none mx-auto block w-full max-w-2xl pb-4 text-center text-sm font-semibold"
+        {/* Agent state status text */}
+        <div className="pointer-events-none mx-auto block w-full max-w-2xl pb-4 text-center text-sm md:text-base">
+          <AnimatePresence mode="wait">
+            {agentState === 'speaking' ? (
+              <motion.span
+                key="speaking"
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.2 }}
+                className="inline-flex items-center gap-2 font-bold text-indigo-600 dark:text-indigo-400"
               >
-                {preConnectMessage}
-              </MotionMessage>
+                <span>🔊</span> <span>BillBhasha is speaking...</span>
+              </motion.span>
+            ) : agentState === 'connecting' ? (
+              <motion.span
+                key="connecting"
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.2 }}
+                className="text-muted-foreground inline-flex items-center gap-2 font-bold"
+              >
+                <span className="animate-spin">🔄</span> <span>Connecting to BillBhasha...</span>
+              </motion.span>
+            ) : (
+              <motion.span
+                key="listening"
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.2 }}
+                className="inline-flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400"
+              >
+                <span className="animate-pulse">🎤</span> <span>Listening to you...</span>
+              </motion.span>
             )}
           </AnimatePresence>
-        )}
+        </div>
         <div className="bg-background relative mx-auto max-w-2xl pb-3 md:pb-12">
           <Fade bottom className="absolute inset-x-0 top-0 h-4 -translate-y-full" />
           <AgentControlBar
