@@ -8,7 +8,9 @@ from livekit.agents import (
     AgentSession,
     JobContext,
     JobProcess,
+    RunContext,
     cli,
+    function_tool,
     inference,
     tokenize,
     room_io,
@@ -52,6 +54,20 @@ You cannot verify real-time prices, seller policies, tax filings, legal disputes
 - If the user mixes Hindi and English, respond naturally in Hinglish.
 - Keep responses conversational and easy to understand.
 - Avoid technical jargon whenever possible.
+- Always write every language in its own native script.
+- Hindi → Devanagari (नमस्ते), never romanized.
+- If the user speaks Hindi, respond in Hindi script.
+- If the user speaks Hinglish, naturally follow the user's language preference while using the correct script.
+
+# MEMORY
+- Remember useful user preferences and short context across conversations.
+- Examples of good memory include preferred language, recurring context, and simple preferences about explanation style.
+- Do not store sensitive financial information such as card numbers, bank details, or full bill values.
+- Ask before saving anything personal. If the user says no, do not save it.
+- If the user says they prefer Hindi, remember it and use it in future replies.
+- If the user mentions a recurring context, use it naturally in later conversations.
+- If the user introduces themselves or shares a personal detail, use the lookup_caller_profile tool first to see whether you already know them.
+- If you learn a new preference or personal detail, use the save_caller_fact tool only after asking for permission.
 
 # GUARDRAILS
 
@@ -82,9 +98,49 @@ If a user asks about billing disputes, legal issues, refunds, or tax filing, pol
   "No worries. Feel free to call me anytime you need help understanding a bill. Goodbye!\""""
 
 
+try:
+    from .tools import CallerMemoryTools
+    from . import memory as memory_module
+except ImportError:  # pragma: no cover - fallback for script execution
+    from tools import CallerMemoryTools
+    import memory as memory_module
+
+DB_PATH = memory_module.DB_PATH
+
+
 class Assistant(Agent):
     def __init__(self) -> None:
+        self.db_path = str(DB_PATH)
+        self.memory_tools = CallerMemoryTools(self.db_path)
         super().__init__(instructions=SYSTEM_PROMPT)
+
+    def _lookup_caller_profile(self, user_id: str) -> dict | None:
+        from memory import lookup_caller_profile as lookup_profile
+
+        return lookup_profile(user_id, db_path=self.db_path)
+
+    def _save_caller_fact(self, user_id: str, key: str, value: str, *, consent: bool) -> bool:
+        from memory import save_caller_fact as save_fact
+
+        return save_fact(user_id, key, value, consent=consent, db_path=self.db_path)
+
+    def _save_caller_profile(self, user_id: str, name: str, *, consent: bool) -> bool:
+        from memory import save_caller_profile as save_profile
+
+        return save_profile(user_id, name, consent=consent, db_path=self.db_path)
+
+    @function_tool
+    async def lookup_caller(self, context: RunContext, user_id: str) -> str:
+        """Look up an existing caller profile by ID and return stored memory as JSON."""
+        return await self.memory_tools.lookup_caller(context, user_id)
+
+    @function_tool
+    async def save_caller(self, context: RunContext, user_id: str, key: str, value: str, consent: bool) -> str:
+        """Save a caller preference or fact after the caller gives permission."""
+        return await self.memory_tools.save_caller(context, user_id, key, value, consent)
+
+    def _build_memory_context(self, user_id: str) -> str:
+        return self.memory_tools.build_memory_context(user_id)
 
     # To add tools, use the @function_tool decorator.
     # Here's an example that adds a simple weather tool.

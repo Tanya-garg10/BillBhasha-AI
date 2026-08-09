@@ -1,11 +1,29 @@
 import pytest
 from livekit.agents import AgentSession, inference, llm
 
+import agent
 from agent import Assistant
 
 
 def _llm() -> llm.LLM:
     return inference.LLM(model="openai/gpt-4.1-mini")
+
+
+def test_caller_memory_round_trip(tmp_path, monkeypatch) -> None:
+    """Caller profiles should be persisted and retrievable across sessions."""
+    monkeypatch.setattr(agent, "DB_PATH", tmp_path / "caller_memory.db")
+
+    assistant = Assistant()
+    assistant._save_caller_fact("user-1", "name", "Ravi", consent=True)
+    assistant._save_caller_fact("user-1", "language_preference", "Hindi", consent=True)
+    assistant._save_caller_fact("user-1", "shop", "local grocery", consent=True)
+
+    profile = assistant._lookup_caller_profile("user-1")
+
+    assert profile["user_id"] == "user-1"
+    assert profile["name"] == "Ravi"
+    assert profile["language_preference"] == "Hindi"
+    assert profile["facts"]["shop"] == "local grocery"
 
 
 @pytest.mark.asyncio
