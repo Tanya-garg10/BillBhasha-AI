@@ -1,4 +1,15 @@
+"""
+Outbound agent for BillBhasha AI using LiveKit SIP trunking with Linphone.
+
+This script runs the voice agent that will handle outbound calls via SIP.
+"""
+
 import logging
+import sys
+from pathlib import Path
+
+# Add parent directories to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from dotenv import load_dotenv
 from livekit import rtc
@@ -20,12 +31,11 @@ from livekit.agents.llm.chat_context import ChatMessage
 from livekit.plugins import murf, silero, google, deepgram, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
-logger = logging.getLogger("agent")
+logger = logging.getLogger("outbound_agent")
 
 load_dotenv(".env.local")
 
-# Change this prompt to change what your voice agent does.
-# See README.md for example prompts (customer support, language tutor, receptionist).
+# BillBhasha AI System Prompt for Outbound Calls
 SYSTEM_PROMPT = """You are BillBhasha AI, a voice-first Local Commerce assistant built to help customers with their orders, catalogue information, bills, and delivery updates.
 
 IDENTITY
@@ -148,9 +158,9 @@ Useful information → clear communication → respect the user's time and choic
 
 
 try:
-    from .tools import CallerMemoryTools
-    from . import memory as memory_module
-    from . import catalogue as catalogue_module
+    from src.tools import CallerMemoryTools
+    from src import memory as memory_module
+    from src import catalogue as catalogue_module
 except ImportError:  # pragma: no cover - fallback for script execution
     from tools import CallerMemoryTools
     import memory as memory_module
@@ -169,17 +179,14 @@ class Assistant(Agent):
 
     def _lookup_caller_profile(self, user_id: str) -> dict | None:
         from memory import lookup_caller_profile as lookup_profile
-
         return lookup_profile(user_id, db_path=self.db_path)
 
     def _save_caller_fact(self, user_id: str, key: str, value: str, *, consent: bool) -> bool:
         from memory import save_caller_fact as save_fact
-
         return save_fact(user_id, key, value, consent=consent, db_path=self.db_path)
 
     def _save_caller_profile(self, user_id: str, name: str, *, consent: bool) -> bool:
         from memory import save_caller_profile as save_profile
-
         return save_profile(user_id, name, consent=consent, db_path=self.db_path)
 
     @function_tool
@@ -215,7 +222,7 @@ class Assistant(Agent):
             # Format the result for natural language response
             result = (
                 f"Product: {product['name']}\n"
-                f"Price: ₹{product['price']}\n"
+                f"Price: INR {product['price']}\n"
                 f"Stock: {product['stock']} units\n"
                 f"Category: {product['category']}\n"
                 f"Last Updated: {product['last_updated']}"
@@ -250,13 +257,13 @@ class Assistant(Agent):
             # Format the result for natural language response
             result = (
                 f"Product: {order['product']}\n"
-                f"Unit Price: ₹{order['unit_price']}\n"
+                f"Unit Price: INR {order['unit_price']}\n"
                 f"Quantity: {order['quantity']}\n"
-                f"Total: ₹{order['total']}\n"
+                f"Total: INR {order['total']}\n"
                 f"Stock Available: {'Yes' if order['stock_available'] else 'No - insufficient stock'}\n"
                 f"Last Updated: {order['last_updated']}"
             )
-            logger.info(f"Order calculation successful: {order['product']} x {order['quantity']} = ₹{order['total']}")
+            logger.info(f"Order calculation successful: {order['product']} x {order['quantity']} = INR {order['total']}")
             return result
             
         except Exception as e:
@@ -288,23 +295,6 @@ class Assistant(Agent):
         )
         self._memory_context_added = True
 
-    # To add tools, use the @function_tool decorator.
-    # Here's an example that adds a simple weather tool.
-    # You also have to add `from livekit.agents import function_tool, RunContext` to the top of this file
-    # @function_tool
-    # async def lookup_weather(self, context: RunContext, location: str):
-    #     """Use this tool to look up current weather information in the given location.
-    #
-    #     If the location is not supported by the weather service, the tool will indicate this. You must tell the user the location's weather is unavailable.
-    #
-    #     Args:
-    #         location: The location to look up weather information for (e.g. city name)
-    #     """
-    #
-    #     logger.info(f"Looking up weather for {location}")
-    #
-    #     return "sunny with a temperature of 70 degrees."
-
 
 server = AgentServer()
 
@@ -319,7 +309,6 @@ server.setup_fnc = prewarm
 @server.rtc_session(agent_name="my-agent")
 async def my_agent(ctx: JobContext):
     # Logging setup
-    # Add any other context you want in all log entries here
     ctx.log_context_fields = {
         "room": ctx.room.name,
     }
@@ -327,15 +316,12 @@ async def my_agent(ctx: JobContext):
     # Set up a voice AI pipeline using Murf Falcon, Gemini, Deepgram, and the LiveKit turn detector
     session = AgentSession(
         # Speech-to-text (STT) is your agent's ears, turning the user's speech into text that the LLM can understand
-        # See all available models at https://docs.livekit.io/agents/models/stt/
         stt=deepgram.STT(model="nova-3", language="multi"),
         # A Large Language Model (LLM) is your agent's brain, processing user input and generating a response
-        # See all available models at https://docs.livekit.io/agents/models/llm/
         llm=google.LLM(
                 model="gemini-3.5-flash-lite",
             ),
         # Text-to-speech (TTS) is your agent's voice, turning the LLM's text into speech that the user can hear
-        # See all available models as well as voice selections at https://docs.livekit.io/agents/models/tts/
         tts=murf.TTS(
                 voice="Anisha",
                 style="Conversation",
@@ -344,31 +330,11 @@ async def my_agent(ctx: JobContext):
                 speed=90,
             ),
         # VAD and turn detection are used to determine when the user is speaking and when the agent should respond
-        # See more at https://docs.livekit.io/agents/build/turns
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
         # allow the LLM to generate a response while waiting for the end of turn
-        # See more at https://docs.livekit.io/agents/build/audio/#preemptive-generation
         preemptive_generation=False,
     )
-
-    # To use a realtime model instead of a voice pipeline, use the following session setup instead.
-    # (Note: This is for the OpenAI Realtime API. For other providers, see https://docs.livekit.io/agents/models/realtime/))
-    # 1. Install livekit-agents[openai]
-    # 2. Set OPENAI_API_KEY in .env.local
-    # 3. Add `from livekit.plugins import openai` to the top of this file
-    # 4. Use the following session setup instead of the version above
-    # session = AgentSession(
-    #     llm=openai.realtime.RealtimeModel(voice="marin")
-    # )
-
-    # # Add a virtual avatar to the session, if desired
-    # # For other providers, see https://docs.livekit.io/agents/models/avatar/
-    # avatar = hedra.AvatarSession(
-    #   avatar_id="...",  # See https://docs.livekit.io/agents/models/avatar/plugins/hedra
-    # )
-    # # Start the avatar and wait for it to join
-    # await avatar.start(session, room=ctx.room)
 
     # Start the session, which initializes the voice pipeline and warms up the models
     assistant = Assistant()
@@ -386,9 +352,6 @@ async def my_agent(ctx: JobContext):
             ),
         ),
     )
-    
-    # Disable desktop audio for SIP calls
-    # Note: participant_kind check is done through room_options audio input configuration
 
     # Join the room and connect to the user
     await ctx.connect()
@@ -396,9 +359,8 @@ async def my_agent(ctx: JobContext):
     # Keep caller identity for memory lookups and returning-user context.
     participant = await ctx.wait_for_participant()
     assistant.caller_id = participant.identity
-    session.userdata = {"caller_id": participant.identity}
-    ctx.log_context_fields["caller_identity"] = participant.identity
 
 
 if __name__ == "__main__":
+    # Run the agent server
     cli.run_app(server)

@@ -3,10 +3,16 @@ from livekit.agents import AgentSession, inference, llm
 
 import agent
 from agent import Assistant
+import catalogue
 
 
 def _llm() -> llm.LLM:
     return inference.LLM(model="openai/gpt-4.1-mini")
+
+
+def test_prompt_requires_complete_sentences() -> None:
+    """The prompt should ask for complete spoken responses instead of fragments."""
+    assert "complete sentences" in agent.SYSTEM_PROMPT.lower()
 
 
 def test_caller_memory_round_trip(tmp_path, monkeypatch) -> None:
@@ -125,4 +131,122 @@ async def test_refuses_harmful_request() -> None:
         )
 
         # Ensures there are no function calls or other unexpected events
+        result.expect.no_more_events()
+
+
+def test_catalogue_lookup_product() -> None:
+    """Test that catalogue lookup returns correct product information."""
+    # Test exact match
+    result = catalogue.lookup_product("wireless mouse")
+    assert result is not None
+    assert result["name"] == "Wireless Mouse"
+    assert result["price"] == 599
+    assert result["stock"] == 12
+    assert result["last_updated"] == "10 August 2026"
+    
+    # Test case-insensitive match
+    result = catalogue.lookup_product("WIRELESS MOUSE")
+    assert result is not None
+    assert result["name"] == "Wireless Mouse"
+    
+    # Test partial match
+    result = catalogue.lookup_product("mouse")
+    assert result is not None
+    assert result["name"] == "Wireless Mouse"
+    
+    # Test not found
+    result = catalogue.lookup_product("nonexistent product")
+    assert result is None
+
+
+def test_catalogue_calculate_order_total() -> None:
+    """Test that order total calculation works correctly."""
+    # Test single item
+    result = catalogue.calculate_order_total("wireless mouse", 1)
+    assert result is not None
+    assert result["product"] == "Wireless Mouse"
+    assert result["unit_price"] == 599
+    assert result["quantity"] == 1
+    assert result["total"] == 599
+    assert result["stock_available"] is True
+    
+    # Test multiple items
+    result = catalogue.calculate_order_total("wireless mouse", 2)
+    assert result is not None
+    assert result["total"] == 1198
+    assert result["stock_available"] is True
+    
+    # Test insufficient stock
+    result = catalogue.calculate_order_total("wireless mouse", 20)
+    assert result is not None
+    assert result["stock_available"] is False
+    
+    # Test product not found
+    result = catalogue.calculate_order_total("nonexistent", 1)
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_catalogue_tool_retrieval() -> None:
+    """Test that the agent can use the catalogue tool to look up products."""
+    async with (
+        _llm() as test_llm,
+        AgentSession(llm=test_llm) as session,
+    ):
+        await session.start(Assistant())
+
+        # Run an agent turn asking about product availability
+        result = await session.run(user_input="Do you have a wireless mouse available?")
+
+        # The agent should first call the catalogue tool
+        result.expect.next_event().is_function_call(name="lookup_catalogue")
+        
+        # Then receive the tool output
+        result.expect.next_event().is_function_call_output()
+        
+        # Finally, provide the assistant's response
+        await (
+            result.expect.next_event()
+            .is_message(role="assistant")
+            .judge(
+                test_llm,
+                intent="""
+                The agent should provide accurate information about the wireless mouse based on the catalogue tool result, including price and stock information. The response should be helpful and use the real data from the tool.
+                """,
+            )
+        )
+
+        result.expect.no_more_events()
+
+
+@pytest.mark.asyncio
+async def test_order_total_calculation() -> None:
+    """Test that the agent can calculate order totals using the catalogue tool."""
+    async with (
+        _llm() as test_llm,
+        AgentSession(llm=test_llm) as session,
+    ):
+        await session.start(Assistant())
+
+        # Run an agent turn asking about order total
+        result = await session.run(user_input="How much would 2 wireless mice cost?")
+
+        # The agent should first call a catalogue-related tool
+        result.expect.next_event().is_function_call()
+        
+        # Then receive the tool output
+        result.expect.next_event().is_function_call_output()
+        
+        # Finally, provide the assistant's response
+        await (
+            result.expect.next_event()
+            .is_message(role="assistant")
+            .judge(
+                test_llm,
+                intent="""
+                The agent should provide the correct total price for 2 wireless mice (₹1,198) based on the catalogue tool result. The response should use the real data from the tool.
+                """,
+            )
+        )
+
         result.expect.no_more_events()
