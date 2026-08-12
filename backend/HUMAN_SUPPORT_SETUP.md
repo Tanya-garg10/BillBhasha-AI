@@ -4,13 +4,22 @@ This document explains how to set up and configure the human support escalation 
 
 ## Overview
 
-The human support escalation feature allows BillBhasha AI to recognize when it cannot handle a user's request and automatically escalate to human support. This is crucial for:
+The human support escalation feature allows BillBhasha AI to recognize when it cannot handle a user's request and automatically create support tickets for human resolution. This is crucial for:
 
-- Billing disputes and complex account issues
-- Refund requests requiring verification
-- Unusual charges that AI cannot explain
+- Refund disputes and payment issues
+- Wrong GST charges or billing discrepancies
+- Complex account issues requiring verification
 - User frustration or repeated unresolved issues
 - Account verification and sensitive operations
+
+## Key Features
+
+- **Support Ticket Creation**: Automatic ticket generation with unique reference IDs
+- **Privacy Protection**: Only shares necessary information, no sensitive data
+- **Priority Levels**: Urgency levels (Low, Medium, High) for ticket prioritization
+- **Language Preferences**: Tracks user's preferred language
+- **Dashboard**: Simple database to track and manage support tickets
+- **Notification System**: Alerts human support via webhooks, Discord, or Slack
 
 ## Configuration
 
@@ -29,166 +38,169 @@ DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/your-webhook-url
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/your-webhook-url
 ```
 
-### Notification Channels
+### Support Ticket Database
 
-You can configure one or more notification channels:
+The system automatically creates a `support_tickets.json` file in the backend directory to store:
+- Reference IDs
+- Caller information
+- Issue types
+- Urgency levels
+- Language preferences
+- Ticket status
 
-#### 1. Generic Webhook
-- Set `HUMAN_SUPPORT_WEBHOOK_URL` to your webhook endpoint
-- The system will send a JSON POST request with escalation data
-- Payload format:
-  ```json
-  {
-    "timestamp": "2026-08-11T19:00:00",
-    "caller_id": "user_123",
-    "reason": "billing dispute",
-    "room": "room_456",
-    "user_consent": true,
-    "service": "BillBhasha AI",
-    "escalation_type": "human_handoff"
-  }
-  ```
+## Support Ticket Creation
 
-#### 2. Discord Webhook
-- Set `DISCORD_WEBHOOK_URL` to your Discord webhook URL
-- Creates a formatted Discord embed with escalation details
-- Shows up as a colored alert in your Discord channel
+The AI will automatically create support tickets when:
 
-#### 3. Slack Webhook
-- Set `SLACK_WEBHOOK_URL` to your Slack webhook URL
-- Creates a formatted Slack message with escalation details
-- Shows up as a notification in your Slack channel
+1. **Refund disputes and payment issues**
+   - "I haven't received my refund"
+   - "Payment not processed"
+   - "Wrong amount charged"
 
-## Escalation Triggers
+2. **GST and billing discrepancies**
+   - "Wrong GST charge"
+   - "Incorrect bill amount"
+   - "Billing error"
 
-The AI will automatically escalate to human support when:
-
-1. **User explicitly requests human support**
+3. **User explicitly requests human support**
    - "Mujhe human se baat karni hai"
    - "Human se connect karo"
    - "I want to speak to a human"
-
-2. **Billing disputes and complex account issues**
-   - User reports incorrect charges
-   - Complex billing questions AI cannot resolve
-   - Account verification requests
-
-3. **Refund requests**
-   - User asks for refunds
-   - Dispute resolution required
 
 4. **Repeated unresolved issues**
    - User repeats the same problem multiple times
    - AI cannot provide satisfactory solution
 
-5. **Sensitive operations**
+5. **Account verification needs**
    - Account changes requiring verification
    - Identity verification requests
    - Security-related issues
 
-## Testing the Escalation
+## Support Ticket Workflow
+
+1. **Detection**: AI identifies complex issue requiring human support
+2. **Consent**: AI asks for user permission to create support ticket
+3. **Information Sharing**: AI explains what information will be shared (no sensitive data)
+4. **Ticket Creation**: System generates unique reference ID (e.g., BB-2045)
+5. **Notification**: Human support is notified via configured channels
+6. **Tracking**: Ticket is stored in database for status tracking
+
+## Testing the Support Ticket System
 
 ### Manual Testing
 
-You can test the escalation by simulating a conversation that triggers escalation:
+Test the support ticket creation:
 
 ```python
-# Test the escalation notification system
-python src/human_support.py
+# Test the support ticket system
+python test_support_tickets.py
 ```
 
 ### Voice Testing
 
 During a call, say something like:
-- "Mere bill mein ek charge hai jo mujhe bilkul samajh nahi aa raha, aur mujhe lag raha hai ye galat hai. Mujhe human se baat karni hai."
+- "I paid for an online order two weeks ago, but I still haven't received my refund."
 
 The AI should:
-1. Acknowledge the concern
-2. Explain why it needs to escalate
-3. Ask for consent
-4. Use the escalation tool
-5. Send notifications to configured channels
+1. Acknowledge the refund issue
+2. Explain it requires human support
+3. Ask for consent to create ticket
+4. Explain what information will be shared
+5. Create the ticket with reference ID
+6. Provide the reference ID to the user
 
-## Monitoring Escalations
+## Dashboard and Monitoring
 
-The system logs all escalation attempts:
-- Timestamp
-- Caller ID
-- Reason for escalation
-- Room information
-- Notification status
+### View Support Tickets
 
-Check the logs for escalation activity:
+You can view the support ticket database directly:
+
 ```bash
-# View agent logs
-tail -f logs/agent.log | grep escalation
+# View all support tickets
+cat backend/support_tickets.json
 ```
 
-## Customization
+### Dashboard Data
 
-### Adding Custom Escalation Reasons
+The system provides dashboard statistics:
+- Total tickets
+- Open tickets
+- In Progress tickets
+- Resolved tickets
+- Recent tickets list
 
-You can customize the escalation logic by modifying the system prompt in `src/agent.py`:
+Access this programmatically via the `SupportTicketManager` class.
+
+## Support Ticket Management
+
+### Update Ticket Status
+
+You can update ticket status programmatically:
 
 ```python
-HUMAN ESCALATION
-You must recognize when to escalate to human support...
+from src.support_tickets import SupportTicketManager
 
-# Add your custom triggers here
-- Add custom escalation scenarios specific to your use case
+manager = SupportTicketManager()
+manager.update_ticket_status("BB-2045", "In Progress")
 ```
 
-### Custom Notification Formats
-
-Modify `src/human_support.py` to customize notification formats for your specific needs:
+### Get Ticket Information
 
 ```python
-def send_webhook_notification(self, escalation_data: EscalationData) -> bool:
-    # Customize the payload format
-    payload = {
-        # Your custom fields
-    }
+ticket = manager.get_ticket("BB-2045")
+print(f"Issue: {ticket.issue_type}")
+print(f"Status: {ticket.status}")
+print(f"Urgency: {ticket.urgency}")
 ```
+
+## Privacy and Security
+
+The system is designed to protect user privacy:
+
+- **No sensitive data shared**: Only shares name, issue type, urgency, language
+- **Consent-based**: Always asks for user permission before creating tickets
+- **Reference IDs**: Uses unique IDs instead of personal identifiers
+- **Limited information**: Only shares what's necessary for human support
 
 ## Troubleshooting
 
-### Notifications Not Sending
+### Support Tickets Not Creating
+
+1. Check that `support_tickets.json` file is writable
+2. Verify the `create_support_ticket` tool is properly registered
+3. Test with clear refund dispute phrases
+4. Review agent logs for errors
+
+### Reference ID Generation Issues
+
+1. Check if the support_tickets.json file exists
+2. Verify file permissions
+3. Test the ticket generation manually
+4. Check for concurrent access issues
+
+### Notification Failures
 
 1. Check environment variables are set correctly
 2. Verify webhook URLs are accessible
-3. Check network connectivity
-4. Review error logs
-
-### AI Not Escalating
-
-1. Check system prompt escalation triggers
-2. Verify escalation tool is properly registered
-3. Test with clear escalation phrases
-4. Review conversation logs
-
-### Multiple Notifications
-
-If you receive duplicate notifications:
-- Check for multiple notification channels configured
-- Review escalation timing logic
-- Check for network retry issues
+3. Test webhook endpoints independently
+4. Review notification logs
 
 ## Best Practices
 
-1. **Always ask for consent** before escalating
-2. **Provide clear reasons** for escalation to the user
-3. **Monitor escalation patterns** to improve AI capabilities
-4. **Set up proper monitoring** for human support notifications
-5. **Have a backup plan** if notification systems fail
-6. **Train human support** on escalation context and information
+1. **Always ask for consent** before creating support tickets
+2. **Explain clearly** what information will be shared
+3. **Provide reference IDs** for easy tracking
+4. **Monitor ticket patterns** to improve AI capabilities
+5. **Set proper urgency levels** for prioritization
+6. **Train human support** on ticket context and handling
 
 ## Future Enhancements
 
-Potential improvements for the escalation system:
+Potential improvements for the support ticket system:
 
-- Priority levels for different escalation types
-- Automatic callback scheduling
 - Integration with ticket systems (Zendesk, Freshdesk)
-- Real-time agent availability checking
+- Automatic ticket status updates from human support
+- Customer satisfaction surveys after resolution
 - Escalation analytics and reporting
-- Multi-language support for escalation messages
+- Multi-language support for ticket responses
+- Automated ticket routing based on issue type

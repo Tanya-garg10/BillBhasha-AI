@@ -122,37 +122,44 @@ Do not guess or fabricate an answer.
 Say:
 "माफ़ कीजिए, मैं अभी उस information को retrieve नहीं कर पा रहा हूँ। मैं गलत information guess नहीं करना चाहता। कृपया थोड़ी देर बाद फिर try करें।"
 
-HUMAN ESCALATION
-You must recognize when to escalate to human support instead of trying to handle everything yourself.
+HUMAN ESCALATION & SUPPORT TICKETS
+You must recognize when to create support tickets instead of trying to handle complex financial issues yourself.
 
-Escalate to human support when:
-- User explicitly asks to speak with a human ("Mujhe human se baat karni hai", "Human se connect karo")
-- User mentions billing disputes, refunds, or account verification issues
-- User reports unusual/incorrect charges that you cannot explain confidently
+Create support tickets when:
+- User mentions refund disputes or payment issues
+- User reports wrong GST charges or billing discrepancies
+- User explicitly asks for human support ("Mujhe human se baat karni hai", "Human se connect karo")
 - User repeatedly states the same problem and you cannot resolve it
-- Request requires access to account records or sensitive information you don't have
-- User expresses frustration or repeatedly asks for human help
-- Request involves complex account changes or identity verification
+- Request involves account verification or sensitive financial operations
+- User expresses frustration about unresolved payment issues
 
-How to escalate:
+How to create support tickets:
 1. Acknowledge the user's concern
-2. Explain why you need to escalate (don't want to guess, need human verification)
-3. Ask for consent before escalating
-4. Use the escalate_to_human tool with the appropriate reason
-5. Provide clear next steps to the user
+2. Explain why this requires human support (don't want to guess, need verification)
+3. Ask for consent before creating the ticket
+4. Use the create_support_ticket tool with appropriate issue_type, urgency, and language
+5. Inform the user what information will be shared (no sensitive data)
+6. Provide the reference ID for tracking
 
 Example escalation flow:
-User: "Mere bill mein ek charge hai jo mujhe bilkul samajh nahi aa raha, aur mujhe lag raha hai ye galat hai. Mujhe human se baat karni hai."
+User: "I paid for an online order two weeks ago, but I still haven't received my refund."
 
-You: "I understand. Since this may require checking your account or billing records, I don't want to guess or give you incorrect information. I can connect you with a human support representative. Would you like me to do that?"
+You: "I'm sorry to hear that. Refund disputes may require support from a human representative. I can create a support request for you and share only the necessary details. Would you like me to proceed?"
 
 User: "Yes."
 
-You: (Use escalate_to_human tool with reason="billing dispute" and user_consent=True)
+You: "Thank you. I will share: Your name, Issue type: Refund dispute, Preferred language, Urgency level. No payment passwords, OTPs, PINs, or sensitive information will be shared. Shall I create the request?"
 
-Never escalate for:
-- Simple order status checks
-- Product information questions
+User: "Yes."
+
+You: (Use create_support_ticket tool with issue_type="Refund dispute", urgency="Medium", language="Hindi")
+
+You: "Your support request has been created successfully. Reference ID: BB-2045. A support representative may contact you soon through your preferred method. Please keep this reference number for future communication."
+
+Never create support tickets for:
+- Simple GST explanation questions
+- Basic bill information
+- Product price inquiries
 - Catalogue lookups
 - General inquiries you can handle with available tools
 
@@ -263,63 +270,70 @@ class Assistant(Agent):
             return "I'm sorry, I couldn't reach the catalogue right now. I don't want to guess the current stock or price. Please try again in a moment."
 
     @function_tool
-    async def escalate_to_human(self, context: RunContext, reason: str, user_consent: bool = True) -> str:
-        """Escalate the conversation to human support when AI cannot handle the request.
+    async def create_support_ticket(self, context: RunContext, issue_type: str, urgency: str = "Medium", language: str = "Hindi") -> str:
+        """Create a support ticket for human escalation when AI cannot handle the request.
         
         Use this tool when:
-        - User explicitly asks to speak with a human
-        - User mentions billing disputes, refunds, or account verification issues
-        - User reports unusual/incorrect charges that AI cannot explain
+        - User explicitly asks for human support
+        - User mentions refund disputes or payment issues
+        - User reports wrong GST charges or billing discrepancies
         - User repeatedly states the same problem and AI cannot resolve it
-        - Request requires access to account records or sensitive information AI doesn't have
-        - User expresses frustration or repeatedly asks for human help
+        - Request requires account verification or sensitive operations
         
-        Always ask for user consent before escalating.
+        Always ask for user consent before creating a support ticket.
         
         Args:
-            reason: The reason for escalation (e.g., "billing dispute", "account verification", "refund request")
-            user_consent: Whether the user has agreed to be transferred to human support
+            issue_type: The type of issue (e.g., "Refund dispute", "GST charge dispute", "Payment issue")
+            urgency: The urgency level (Low, Medium, High)
+            language: User's preferred language (Hindi, English, Hinglish)
         """
         try:
-            if not user_consent:
-                return "I understand. I can continue helping you with other questions or information that I can access."
+            logger.info(f"Creating support ticket. Issue: {issue_type}, Urgency: {urgency}")
             
-            logger.info(f"Escalating to human support. Reason: {reason}")
-            
-            # Import human support notification system
+            # Import support ticket system
             try:
+                from support_tickets import SupportTicketManager
+                ticket_manager = SupportTicketManager()
+                
+                # Create support ticket with reference ID
+                ticket = ticket_manager.create_ticket(
+                    caller_id=self.caller_id if self.caller_id else "unknown",
+                    issue_type=issue_type,
+                    urgency=urgency,
+                    language=language,
+                    room=context.room.name if hasattr(context, 'room') else "unknown"
+                )
+                
+                logger.info(f"Support ticket created: {ticket.reference_id}")
+                
+                # Send notifications to human support
                 from human_support import HumanSupportNotifier, EscalationData
                 notifier = HumanSupportNotifier()
                 
-                # Create escalation data
                 escalation_data = EscalationData(
                     timestamp=datetime.now().isoformat(),
                     caller_id=self.caller_id if self.caller_id else "unknown",
-                    reason=reason,
+                    reason=f"Support ticket: {ticket.reference_id} - {issue_type}",
                     room=context.room.name if hasattr(context, 'room') else "unknown",
-                    user_consent=user_consent
+                    user_consent=True,
+                    additional_context=f"Reference ID: {ticket.reference_id}, Urgency: {urgency}, Language: {language}"
                 )
                 
-                # Send notifications to configured channels
                 notification_results = notifier.notify_human_support(escalation_data)
                 logger.info(f"Human support notifications sent: {notification_results}")
                 
+                return f"Your support request has been created successfully. Reference ID: {ticket.reference_id}. A support representative may contact you soon through your preferred method. Please keep this reference number for future communication."
+                
             except ImportError:
-                logger.warning("Human support notification system not available, using fallback logging")
-                # Fallback to simple logging if notification system not available
-                escalation_data = {
-                    "timestamp": datetime.now().isoformat(),
-                    "caller_id": self.caller_id if self.caller_id else "unknown",
-                    "reason": reason,
-                    "room": context.room.name if hasattr(context, 'room') else "unknown"
-                }
-                logger.info(f"Human escalation triggered: {escalation_data}")
-            
-            return "I understand. Since this may require checking your account or billing records, I don't want to guess or give you incorrect information. I'm escalating this conversation to human support. Please stay on the line while I arrange the handoff. A human support representative will be with you shortly."
+                logger.warning("Support ticket system not available, using fallback")
+                # Fallback to simple logging if support system not available
+                reference_id = f"BB-{hash(issue_type + str(datetime.now().timestamp())) % 10000:04d}"
+                logger.info(f"Support ticket created (fallback): {reference_id}")
+                return f"Your support request has been created successfully. Reference ID: {reference_id}. A support representative may contact you soon through your preferred method. Please keep this reference number for future communication."
             
         except Exception as e:
-            logger.error(f"Escalation failed: {e}")
-            return "I apologize, but I'm having trouble connecting you with human support right now. Please try again in a moment or call our support line directly."
+            logger.error(f"Support ticket creation failed: {e}")
+            return "I apologize, but I'm having trouble creating your support request right now. Please try again in a moment or call our support line directly."
 
     @function_tool
     async def calculate_order_total(self, context: RunContext, product_name: str, quantity: int = 1) -> str:
