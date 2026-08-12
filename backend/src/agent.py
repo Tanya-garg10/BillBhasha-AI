@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from dotenv import load_dotenv
 from livekit import rtc
@@ -121,6 +122,40 @@ Do not guess or fabricate an answer.
 Say:
 "माफ़ कीजिए, मैं अभी उस information को retrieve नहीं कर पा रहा हूँ। मैं गलत information guess नहीं करना चाहता। कृपया थोड़ी देर बाद फिर try करें।"
 
+HUMAN ESCALATION
+You must recognize when to escalate to human support instead of trying to handle everything yourself.
+
+Escalate to human support when:
+- User explicitly asks to speak with a human ("Mujhe human se baat karni hai", "Human se connect karo")
+- User mentions billing disputes, refunds, or account verification issues
+- User reports unusual/incorrect charges that you cannot explain confidently
+- User repeatedly states the same problem and you cannot resolve it
+- Request requires access to account records or sensitive information you don't have
+- User expresses frustration or repeatedly asks for human help
+- Request involves complex account changes or identity verification
+
+How to escalate:
+1. Acknowledge the user's concern
+2. Explain why you need to escalate (don't want to guess, need human verification)
+3. Ask for consent before escalating
+4. Use the escalate_to_human tool with the appropriate reason
+5. Provide clear next steps to the user
+
+Example escalation flow:
+User: "Mere bill mein ek charge hai jo mujhe bilkul samajh nahi aa raha, aur mujhe lag raha hai ye galat hai. Mujhe human se baat karni hai."
+
+You: "I understand. Since this may require checking your account or billing records, I don't want to guess or give you incorrect information. I can connect you with a human support representative. Would you like me to do that?"
+
+User: "Yes."
+
+You: (Use escalate_to_human tool with reason="billing dispute" and user_consent=True)
+
+Never escalate for:
+- Simple order status checks
+- Product information questions
+- Catalogue lookups
+- General inquiries you can handle with available tools
+
 PRIVACY & SAFETY
 Never ask for or store:
 - OTP
@@ -226,6 +261,65 @@ class Assistant(Agent):
         except Exception as e:
             logger.error(f"Catalogue lookup failed: {e}")
             return "I'm sorry, I couldn't reach the catalogue right now. I don't want to guess the current stock or price. Please try again in a moment."
+
+    @function_tool
+    async def escalate_to_human(self, context: RunContext, reason: str, user_consent: bool = True) -> str:
+        """Escalate the conversation to human support when AI cannot handle the request.
+        
+        Use this tool when:
+        - User explicitly asks to speak with a human
+        - User mentions billing disputes, refunds, or account verification issues
+        - User reports unusual/incorrect charges that AI cannot explain
+        - User repeatedly states the same problem and AI cannot resolve it
+        - Request requires access to account records or sensitive information AI doesn't have
+        - User expresses frustration or repeatedly asks for human help
+        
+        Always ask for user consent before escalating.
+        
+        Args:
+            reason: The reason for escalation (e.g., "billing dispute", "account verification", "refund request")
+            user_consent: Whether the user has agreed to be transferred to human support
+        """
+        try:
+            if not user_consent:
+                return "I understand. I can continue helping you with other questions or information that I can access."
+            
+            logger.info(f"Escalating to human support. Reason: {reason}")
+            
+            # Import human support notification system
+            try:
+                from human_support import HumanSupportNotifier, EscalationData
+                notifier = HumanSupportNotifier()
+                
+                # Create escalation data
+                escalation_data = EscalationData(
+                    timestamp=datetime.now().isoformat(),
+                    caller_id=self.caller_id if self.caller_id else "unknown",
+                    reason=reason,
+                    room=context.room.name if hasattr(context, 'room') else "unknown",
+                    user_consent=user_consent
+                )
+                
+                # Send notifications to configured channels
+                notification_results = notifier.notify_human_support(escalation_data)
+                logger.info(f"Human support notifications sent: {notification_results}")
+                
+            except ImportError:
+                logger.warning("Human support notification system not available, using fallback logging")
+                # Fallback to simple logging if notification system not available
+                escalation_data = {
+                    "timestamp": datetime.now().isoformat(),
+                    "caller_id": self.caller_id if self.caller_id else "unknown",
+                    "reason": reason,
+                    "room": context.room.name if hasattr(context, 'room') else "unknown"
+                }
+                logger.info(f"Human escalation triggered: {escalation_data}")
+            
+            return "I understand. Since this may require checking your account or billing records, I don't want to guess or give you incorrect information. I'm escalating this conversation to human support. Please stay on the line while I arrange the handoff. A human support representative will be with you shortly."
+            
+        except Exception as e:
+            logger.error(f"Escalation failed: {e}")
+            return "I apologize, but I'm having trouble connecting you with human support right now. Please try again in a moment or call our support line directly."
 
     @function_tool
     async def calculate_order_total(self, context: RunContext, product_name: str, quantity: int = 1) -> str:
