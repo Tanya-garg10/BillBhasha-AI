@@ -50,6 +50,8 @@ export const APP_CONFIG_DEFAULTS: AppConfig = {
 
   // premium visualizer
   audioVisualizerType: 'aura',
+  audioVisualizerColor: '#6366F1',
+  audioVisualizerColorDark: '#A855F7',
 
   // agent dispatch configuration
   agentName: process.env.AGENT_NAME ?? undefined,

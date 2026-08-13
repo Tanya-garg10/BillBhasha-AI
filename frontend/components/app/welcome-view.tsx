@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { VoiceOrb } from './voice-orb';
+import { Navigation } from './navigation';
+import { MobileNavigation } from './mobile-navigation';
 
 interface WelcomeViewProps {
   startButtonText: string;
@@ -36,7 +39,6 @@ export const WelcomeView = ({
       if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
         setPermissionBlocked(true);
       } else {
-        // Fallback check: browser permissions query if supported
         try {
           const status = await navigator.permissions.query({
             name: 'microphone' as PermissionName,
@@ -59,18 +61,18 @@ export const WelcomeView = ({
     return (
       <div
         ref={ref}
-        className="bg-background flex flex-col items-center justify-center px-6 py-12 text-center"
+        className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col items-center justify-center px-6 py-12 text-center min-h-screen"
         {...props}
       >
-        <div className="text-destructive mb-6 text-6xl">🎙️</div>
-        <h2 className="text-foreground mb-3 text-2xl font-bold">Microphone access is blocked</h2>
-        <p className="text-muted-foreground mb-8 max-w-md text-sm leading-6">
+        <div className="text-red-500 mb-6 text-6xl">🎙️</div>
+        <h2 className="text-gray-900 dark:text-white mb-3 text-2xl font-bold">Microphone access is blocked</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md text-sm leading-6">
           Please allow microphone access in your browser settings and try again.
         </p>
         <Button
           size="lg"
           onClick={verifyAndStart}
-          className="w-64 rounded-full text-base font-bold tracking-wider"
+          className="w-64 rounded-full text-base font-bold tracking-wider bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
         >
           Try Again
         </Button>
@@ -78,128 +80,123 @@ export const WelcomeView = ({
     );
   }
 
+  const getOrbState = () => {
+    if (isConnecting) return 'connecting';
+    if (hasCalled) return 'ended';
+    return 'ready';
+  };
+
   return (
-    <div ref={ref} className="mx-auto w-full max-w-md px-4 md:px-0 relative z-10" {...props}>
-      {/* Subtle animated background layer behind the content */}
-      <div className="absolute inset-0 -z-10 animate-gradient-move bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-cyan-500/20 rounded-[3rem] blur-3xl opacity-50 dark:opacity-30"></div>
-      
-      <section className="flex flex-col items-center justify-center text-center py-12">
-        {/* Header */}
-        <header className="mb-8 flex flex-col items-center">
-          <h1 className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-cyan-500 dark:from-indigo-400 dark:to-cyan-300 flex items-center gap-2 text-5xl font-extrabold tracking-tight pb-1 drop-shadow-sm">
-            🧾 BillBhasha AI
-          </h1>
-          <p className="text-muted-foreground mt-3 text-sm font-semibold tracking-widest uppercase opacity-80">
-            Your Voice-Powered Bill Assistant
-          </p>
-        </header>
-
-        {/* Main Hero Screen */}
-        <div className="mb-8">
-          <h2 className="text-foreground text-3xl font-extrabold tracking-tight md:text-4xl leading-tight">
-            Understand your bills.<br/>
-            <span className="text-indigo-500 dark:text-indigo-400">Simply.</span>
-          </h2>
-          <p className="text-muted-foreground mt-4 max-w-xs text-sm leading-6 md:max-w-sm mx-auto font-medium">
-            Ask about GST, charges, invoices, receipts or payments — just speak.
-          </p>
-        </div>
-
-        {/* Center Large Voice Button / State Display */}
-        {isConnecting ? (
-          <div className="mt-8 flex w-full flex-col items-center">
-            <Button
-              disabled
-              size="lg"
-              className="glass-card text-foreground flex w-72 items-center justify-center gap-3 rounded-full py-7 text-sm font-bold tracking-wider md:text-base opacity-80"
-            >
-              <span className="animate-spin text-xl">🔄</span> Connecting...
-            </Button>
-          </div>
-        ) : hasCalled ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4 mt-8 flex w-full flex-col items-center gap-4 duration-500">
-            <p className="flex items-center gap-2 text-base font-bold text-emerald-600 dark:text-emerald-400 drop-shadow-sm">
-              ✓ Call ended
-            </p>
-            <Button
-              size="lg"
-              disabled={checkingPermission}
-              onClick={verifyAndStart}
-              className="glow-button bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white flex w-64 items-center justify-center gap-2 rounded-full py-6 text-base font-bold tracking-wider transition-all duration-300 hover:scale-105 border-none"
-            >
-              <span className="text-xl">↻</span> Start Again
-            </Button>
-          </div>
-        ) : (
-          <Button
-            size="lg"
-            disabled={checkingPermission}
-            onClick={verifyAndStart}
-            className="glow-button mt-8 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white flex w-72 items-center justify-center gap-3 rounded-full py-7 text-lg font-bold tracking-wider transition-all duration-300 hover:scale-[1.03] border-none"
-          >
-            <span className="text-2xl drop-shadow-md">🎙️</span> Start Conversation
-          </Button>
-        )}
-
-        {/* Track-specific UI (Suggestions) */}
-        {!isConnecting && (
-          <div className="animate-in fade-in slide-in-from-bottom-6 mt-12 w-full duration-700 delay-150 fill-mode-both">
-            <p className="text-foreground/70 mb-4 text-xs font-bold tracking-widest uppercase md:text-xs">
-              What can I help you understand?
-            </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              {['GST', 'Invoice', 'Extra Charges', 'Receipt'].map((item) => (
-                <span
-                  key={item}
-                  className="glass-card text-foreground hover:bg-white/20 dark:hover:bg-white/10 cursor-pointer rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                >
-                  {item}
-                </span>
-              ))}
+    <div ref={ref} className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-950" {...props}>
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
+                🧾
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900 dark:text-white">BillBhasha AI</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">AI Voice Assistant</p>
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* Track-specific UI (Features List) */}
-        {!isConnecting && (
-          <div className="glass-card animate-in fade-in slide-in-from-bottom-8 mt-10 w-full rounded-3xl p-6 text-left duration-1000 delay-300 fill-mode-both relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-            <p className="text-foreground mb-5 text-center text-xs font-bold tracking-widest uppercase md:text-xs relative z-10">
-              BillBhasha can help you with
+            {/* Connection Status */}
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${isConnecting ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {isConnecting ? 'Connecting...' : 'Ready'}
+              </span>
+            </div>
+
+            {/* Navigation */}
+            <Navigation className="hidden md:flex" />
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="pt-24 pb-20 md:pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Hero Section */}
+          <div className="text-center mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Your voice assistant for smarter bills.
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Understand GST, invoices, charges and payments — simply by talking.
             </p>
-            <ul className="text-foreground/90 space-y-4 text-sm font-medium md:text-base relative z-10">
-              <li className="flex items-center gap-4 transition-transform hover:translate-x-1 duration-300">
-                <span className="text-xl bg-indigo-100 dark:bg-indigo-900/50 p-2 rounded-full">🧾</span>
-                <span>Understand complex invoices</span>
-              </li>
-              <li className="flex items-center gap-4 transition-transform hover:translate-x-1 duration-300">
-                <span className="text-xl bg-purple-100 dark:bg-purple-900/50 p-2 rounded-full">💰</span>
-                <span>Explain GST & hidden charges</span>
-              </li>
-              <li className="flex items-center gap-4 transition-transform hover:translate-x-1 duration-300">
-                <span className="text-xl bg-cyan-100 dark:bg-cyan-900/50 p-2 rounded-full">🛍️</span>
-                <span>Review purchase bills</span>
-              </li>
-              <li className="flex items-center gap-4 transition-transform hover:translate-x-1 duration-300">
-                <span className="text-xl bg-emerald-100 dark:bg-emerald-900/50 p-2 rounded-full">💳</span>
-                <span>Verify payment details</span>
-              </li>
-            </ul>
           </div>
-        )}
 
-        {/* Dashboard Link */}
-        {!isConnecting && (
-          <div className="animate-in fade-in slide-in-from-bottom-10 mt-6 w-full duration-1000 delay-500 fill-mode-both">
-            <Link
-              href="/dashboard"
-              className="text-muted-foreground hover:text-foreground text-xs font-semibold tracking-widest uppercase transition-colors duration-300"
-            >
-              📊 View Call Analytics Dashboard
-            </Link>
+          {/* Voice Orb */}
+          <div className="mb-12">
+            <VoiceOrb state={getOrbState()} />
           </div>
-        )}
-      </section>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col items-center gap-4">
+            {isConnecting ? (
+              <Button
+                disabled
+                size="lg"
+                className="w-72 rounded-full py-7 text-lg font-bold tracking-wider bg-gradient-to-r from-indigo-600 to-purple-600 opacity-80"
+              >
+                <span className="animate-spin mr-2">⏳</span> Connecting...
+              </Button>
+            ) : hasCalled ? (
+              <Button
+                size="lg"
+                disabled={checkingPermission}
+                onClick={verifyAndStart}
+                className="w-72 rounded-full py-7 text-lg font-bold tracking-wider bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all duration-300 hover:scale-105"
+              >
+                <span className="mr-2">↻</span> Start Another Conversation
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                disabled={checkingPermission}
+                onClick={verifyAndStart}
+                className="w-72 rounded-full py-7 text-lg font-bold tracking-wider bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all duration-300 hover:scale-105 shadow-lg"
+              >
+                <span className="mr-2">🎙️</span> Start Conversation
+              </Button>
+            )}
+
+            {!isConnecting && (
+              <Link
+                href="#how-it-works"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                How it works →
+              </Link>
+            )}
+          </div>
+
+          {/* Visual Context Elements */}
+          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { icon: '🧾', label: 'Invoices' },
+              { icon: '💰', label: 'GST' },
+              { icon: '💳', label: 'Payments' },
+              { icon: '📊', label: 'Analytics' },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+              >
+                <div className="text-3xl mb-2">{item.icon}</div>
+                <div className="text-sm font-medium text-gray-900 dark:text-white">{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {/* Mobile Navigation */}
+      <MobileNavigation />
     </div>
   );
 };
