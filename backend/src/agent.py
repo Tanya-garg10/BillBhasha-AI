@@ -213,19 +213,16 @@ class Assistant(Agent):
         super().__init__(instructions=SYSTEM_PROMPT)
 
     def _lookup_caller_profile(self, user_id: str) -> dict | None:
-        from memory import lookup_caller_profile as lookup_profile
-
-        return lookup_profile(user_id, db_path=self.db_path)
+        memory_module = self._get_memory_module()
+        return memory_module.lookup_caller_profile(user_id, db_path=self.db_path)
 
     def _save_caller_fact(self, user_id: str, key: str, value: str, *, consent: bool) -> bool:
-        from memory import save_caller_fact as save_fact
-
-        return save_fact(user_id, key, value, consent=consent, db_path=self.db_path)
+        memory_module = self._get_memory_module()
+        return memory_module.save_caller_fact(user_id, key, value, consent=consent, db_path=self.db_path)
 
     def _save_caller_profile(self, user_id: str, name: str, *, consent: bool) -> bool:
-        from memory import save_caller_profile as save_profile
-
-        return save_profile(user_id, name, consent=consent, db_path=self.db_path)
+        memory_module = self._get_memory_module()
+        return memory_module.save_caller_profile(user_id, name, consent=consent, db_path=self.db_path)
 
     @function_tool
     async def lookup_caller(self, context: RunContext, user_id: str) -> str:
@@ -388,6 +385,15 @@ class Assistant(Agent):
     def _build_memory_context(self, user_id: str) -> str:
         return self.memory_tools.build_memory_context(user_id)
     
+    def _get_memory_module(self):
+        """Get the memory module with proper imports."""
+        try:
+            from . import memory as memory_module
+            return memory_module
+        except ImportError:
+            import memory as memory_module
+            return memory_module
+    
     def mark_successful_interaction(self) -> None:
         """Mark that a useful answer was provided during the call."""
         self._useful_answer_provided = True
@@ -536,7 +542,7 @@ async def my_agent(ctx: JobContext):
     def on_session_closed():
         """Handle session end and save call outcome to analytics."""
         try:
-            from memory import save_call_outcome
+            memory_module = assistant._get_memory_module()
             from datetime import datetime
             
             # Calculate call duration
@@ -557,7 +563,7 @@ async def my_agent(ctx: JobContext):
             session_id = f"session_{ctx.room.name}_{int(end_time.timestamp())}"
             
             # Save call outcome to database
-            save_call_outcome(
+            memory_module.save_call_outcome(
                 session_id=session_id,
                 outcome=outcome,
                 caller_id=assistant.caller_id,
