@@ -16,6 +16,8 @@ dependencies = [
     "twilio>=8.0.0",
     "livekit-api>=0.5.0",
     "requests>=2.0.0",
+    "flask>=2.0.0",
+    "flask-cors>=3.0.0",
 ]
 
 [dependency-groups]

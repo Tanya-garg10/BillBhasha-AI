@@ -21,6 +21,20 @@ def init_db(db_path: str | Path | None = None) -> Path:
             )
             """
         )
+        # Add call analytics table for Day 8
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS call_analytics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                caller_id TEXT,
+                outcome TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                duration_seconds INTEGER,
+                reason TEXT
+            )
+            """
+        )
     return target
 
 
@@ -126,3 +140,86 @@ def save_caller_profile(
         )
 
     return True
+
+
+def save_call_outcome(
+    session_id: str,
+    outcome: str,
+    caller_id: str | None = None,
+    duration_seconds: int | None = None,
+    reason: str | None = None,
+    db_path: str | Path | None = None,
+) -> bool:
+    """Save the outcome of a call to the analytics database.
+    
+    Args:
+        session_id: Unique identifier for the call session
+        outcome: The call outcome ("success" or "failure")
+        caller_id: The caller's identifier (optional)
+        duration_seconds: Duration of the call in seconds (optional)
+        reason: Reason for failure or additional context (optional)
+        db_path: Path to the database file (optional)
+        
+    Returns:
+        True if save was successful, False otherwise
+    """
+    try:
+        target = init_db(db_path)
+        with sqlite3.connect(target) as conn:
+            conn.execute(
+                """
+                INSERT INTO call_analytics (session_id, caller_id, outcome, timestamp, duration_seconds, reason)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session_id,
+                    caller_id,
+                    outcome,
+                    datetime.now(timezone.utc).isoformat(),
+                    duration_seconds,
+                    reason,
+                ),
+            )
+        return True
+    except Exception as e:
+        print(f"Error saving call outcome: {e}")
+        return False
+
+
+def get_call_analytics(db_path: str | Path | None = None) -> dict[str, int]:
+    """Get call analytics metrics from the database.
+    
+    Args:
+        db_path: Path to the database file (optional)
+        
+    Returns:
+        Dictionary with total_calls, successful_calls, and failed_calls
+    """
+    try:
+        target = init_db(db_path)
+        with sqlite3.connect(target) as conn:
+            # Get total calls
+            total_calls = conn.execute("SELECT COUNT(*) FROM call_analytics").fetchone()[0]
+            
+            # Get successful calls
+            successful_calls = conn.execute(
+                "SELECT COUNT(*) FROM call_analytics WHERE outcome = 'success'"
+            ).fetchone()[0]
+            
+            # Get failed calls
+            failed_calls = conn.execute(
+                "SELECT COUNT(*) FROM call_analytics WHERE outcome = 'failure'"
+            ).fetchone()[0]
+            
+            return {
+                "total_calls": total_calls,
+                "successful_calls": successful_calls,
+                "failed_calls": failed_calls,
+            }
+    except Exception as e:
+        print(f"Error getting call analytics: {e}")
+        return {
+            "total_calls": 0,
+            "successful_calls": 0,
+            "failed_calls": 0,
+        }

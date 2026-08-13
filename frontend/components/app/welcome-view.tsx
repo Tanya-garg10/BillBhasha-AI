@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 interface WelcomeViewProps {
@@ -184,6 +185,18 @@ export const WelcomeView = ({
                 <span>Verify payment details</span>
               </li>
             </ul>
+          </div>
+        )}
+
+        {/* Dashboard Link */}
+        {!isConnecting && (
+          <div className="animate-in fade-in slide-in-from-bottom-10 mt-6 w-full duration-1000 delay-500 fill-mode-both">
+            <Link
+              href="/dashboard"
+              className="text-muted-foreground hover:text-foreground text-xs font-semibold tracking-widest uppercase transition-colors duration-300"
+            >
+              📊 View Call Analytics Dashboard
+            </Link>
           </div>
         )}
       </section>

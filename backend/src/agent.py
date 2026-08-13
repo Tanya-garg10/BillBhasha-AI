@@ -207,6 +207,9 @@ class Assistant(Agent):
         self.memory_tools = CallerMemoryTools(self.db_path)
         self.caller_id: str | None = None
         self._memory_context_added: bool = False
+        self._session_start_time: str | None = None
+        self._successful_escalation: bool = False
+        self._useful_answer_provided: bool = False
         super().__init__(instructions=SYSTEM_PROMPT)
 
     def _lookup_caller_profile(self, user_id: str) -> dict | None:
@@ -263,6 +266,10 @@ class Assistant(Agent):
                 f"Last Updated: {product['last_updated']}"
             )
             logger.info(f"Catalogue lookup successful: {product['name']}")
+            
+            # Mark successful interaction for analytics
+            self.mark_successful_interaction()
+            
             return result
             
         except Exception as e:
@@ -289,6 +296,9 @@ class Assistant(Agent):
         """
         try:
             logger.info(f"Creating support ticket. Issue: {issue_type}, Urgency: {urgency}")
+            
+            # Mark successful escalation for analytics
+            self.mark_successful_escalation()
             
             # Import support ticket system
             try:
@@ -365,6 +375,10 @@ class Assistant(Agent):
                 f"Last Updated: {order['last_updated']}"
             )
             logger.info(f"Order calculation successful: {order['product']} x {order['quantity']} = ₹{order['total']}")
+            
+            # Mark successful interaction for analytics
+            self.mark_successful_interaction()
+            
             return result
             
         except Exception as e:
@@ -373,6 +387,14 @@ class Assistant(Agent):
 
     def _build_memory_context(self, user_id: str) -> str:
         return self.memory_tools.build_memory_context(user_id)
+    
+    def mark_successful_interaction(self) -> None:
+        """Mark that a useful answer was provided during the call."""
+        self._useful_answer_provided = True
+    
+    def mark_successful_escalation(self) -> None:
+        """Mark that a successful human escalation was created."""
+        self._successful_escalation = True
 
     async def on_user_turn_completed(
         self, turn_ctx: llm.ChatContext, new_message: llm.ChatMessage
@@ -480,6 +502,8 @@ async def my_agent(ctx: JobContext):
 
     # Start the session, which initializes the voice pipeline and warms up the models
     assistant = Assistant()
+    assistant._session_start_time = datetime.now().isoformat()
+    
     await session.start(
         agent=assistant,
         room=ctx.room,
@@ -506,6 +530,45 @@ async def my_agent(ctx: JobContext):
     assistant.caller_id = participant.identity
     session.userdata = {"caller_id": participant.identity}
     ctx.log_context_fields["caller_identity"] = participant.identity
+    
+    # Set up call outcome tracking when session ends
+    @session.on("closed")
+    def on_session_closed():
+        """Handle session end and save call outcome to analytics."""
+        try:
+            from memory import save_call_outcome
+            from datetime import datetime
+            
+            # Calculate call duration
+            end_time = datetime.now()
+            duration_seconds = None
+            if assistant._session_start_time:
+                start_time = datetime.fromisoformat(assistant._session_start_time)
+                duration_seconds = int((end_time - start_time).total_seconds())
+            
+            # Determine call outcome based on success conditions
+            # Success: useful answer provided OR successful escalation
+            # Failure: user ended before task completion, tool/API failure, or incomplete request
+            is_successful = assistant._useful_answer_provided or assistant._successful_escalation
+            
+            outcome = "success" if is_successful else "failure"
+            
+            # Generate a unique session ID
+            session_id = f"session_{ctx.room.name}_{int(end_time.timestamp())}"
+            
+            # Save call outcome to database
+            save_call_outcome(
+                session_id=session_id,
+                outcome=outcome,
+                caller_id=assistant.caller_id,
+                duration_seconds=duration_seconds,
+                reason=None if is_successful else "Task not completed",
+            )
+            
+            logger.info(f"Call outcome saved: {outcome}, Session ID: {session_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to save call outcome: {e}")
 
 
 if __name__ == "__main__":
