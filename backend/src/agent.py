@@ -501,6 +501,53 @@ async def my_agent(ctx: JobContext):
     assistant = Assistant()
     assistant._session_start_time = datetime.now().isoformat()
     
+    # Set up call outcome tracking BEFORE starting session
+    @session.on("closed")
+    def on_session_closed():
+        """Handle session end and save call outcome to analytics."""
+        try:
+            logger.info("Session closed - attempting to save call outcome")
+            
+            # Import memory module directly to avoid import issues
+            from src import memory as memory_module
+            from datetime import datetime
+            
+            # Calculate call duration
+            end_time = datetime.now()
+            duration_seconds = None
+            if assistant._session_start_time:
+                start_time = datetime.fromisoformat(assistant._session_start_time)
+                duration_seconds = int((end_time - start_time).total_seconds())
+            
+            # Determine call outcome based on success conditions
+            # Success: useful answer provided OR successful escalation
+            # Failure: user ended before task completion, tool/API failure, or incomplete request
+            is_successful = assistant._useful_answer_provided or assistant._successful_escalation
+            
+            outcome = "success" if is_successful else "failure"
+            
+            # Generate a unique session ID
+            session_id = f"session_{ctx.room.name}_{int(end_time.timestamp())}"
+            
+            logger.info(f"Saving call outcome: {outcome}, Session ID: {session_id}, Useful answer: {assistant._useful_answer_provided}, Escalation: {assistant._successful_escalation}")
+            
+            # Save call outcome to database
+            success = memory_module.save_call_outcome(
+                session_id=session_id,
+                outcome=outcome,
+                caller_id=assistant.caller_id,
+                duration_seconds=duration_seconds,
+                reason=None if is_successful else "Task not completed",
+            )
+            
+            if success:
+                logger.info(f"Call outcome saved successfully: {outcome}, Session ID: {session_id}")
+            else:
+                logger.error(f"Failed to save call outcome to database")
+            
+        except Exception as e:
+            logger.error(f"Failed to save call outcome: {e}", exc_info=True)
+    
     await session.start(
         agent=assistant,
         room=ctx.room,
