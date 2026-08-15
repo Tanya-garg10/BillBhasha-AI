@@ -48,7 +48,7 @@ export const APP_CONFIG_DEFAULTS: AppConfig = {
   accentDark: '#A855F7', // Bright Purple
   startButtonText: 'Start Conversation',
 
-  // premium visualizer
+  // premium visualizer configuration
   audioVisualizerType: 'aura',
   audioVisualizerColor: '#6366F1',
   audioVisualizerColorDark: '#A855F7',
@@ -59,3 +59,4 @@ export const APP_CONFIG_DEFAULTS: AppConfig = {
   // LiveKit Cloud Sandbox configuration
   sandboxId: undefined,
 };
+

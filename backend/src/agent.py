@@ -25,6 +25,7 @@ logger = logging.getLogger("agent")
 
 load_dotenv(".env.local")
 
+
 # Change this prompt to change what your voice agent does.
 # See README.md for example prompts (customer support, language tutor, receptionist).
 SYSTEM_PROMPT = """IDENTITY
@@ -135,22 +136,6 @@ class Assistant(Agent):
         self._useful_answer_provided: bool = False
         self._is_specialist_mode: bool = False
         super().__init__(instructions=SYSTEM_PROMPT)
-        # Add specialist tools for use after handoff
-        self._add_specialist_tools()
-    
-    def _add_specialist_tools(self) -> None:
-        """Add specialist tools to the agent for refund-related queries."""
-        try:
-            from . import refund_specialist
-            # Import the specialist tools
-            self.add_tool(refund_specialist.check_refund_status)
-            self.add_tool(refund_specialist.explain_refund_process)
-            self.add_tool(refund_specialist.check_return_eligibility)
-        except ImportError:
-            from refund_specialist import check_refund_status, explain_refund_process, check_return_eligibility
-            self.add_tool(check_refund_status)
-            self.add_tool(explain_refund_process)
-            self.add_tool(check_return_eligibility)
 
     def _lookup_caller_profile(self, user_id: str) -> dict | None:
         from src import memory as memory_module
