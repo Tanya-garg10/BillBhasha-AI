@@ -1,6 +1,15 @@
-# Voice Agent Starter — Powered by Murf Falcon
+# BillBhasha AI — Voice Assistant for Local Commerce
 
-Build a production voice AI agent in 5 minutes. Powered by the fastest TTS on the market - swap the system prompt to build anything from customer support to language tutors.
+A voice-first AI assistant that helps users understand bills, GST, invoices, charges, payments, returns, and refunds in simple Hindi/Hinglish. Built as part of the **10 Days of AI Voice Agents — #VoiceForBharat** challenge.
+
+**Features:**
+- 🎙️ Natural Hindi/Hinglish voice conversations
+- 📊 GST and billing explanations in simple language
+- 🧑‍💼 Specialist handoff for return/refund issues
+- 💾 Caller memory and personalization
+- 📈 Call analytics dashboard
+- 🎨 Premium modern UI/UX
+- 🆘 Human escalation with support tickets
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Murf Falcon](https://img.shields.io/badge/TTS-Murf%20Falcon-6366F1)](https://murf.ai/api/docs/text-to-speech/streaming) [![LiveKit](https://img.shields.io/badge/Transport-LiveKit-002cf2)](https://docs.livekit.io) [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 
@@ -11,6 +20,21 @@ Build a production voice AI agent in 5 minutes. Powered by the fastest TTS on th
 - **$0.01/1000 characters** - up to 10x cheaper than alternatives
 - **150+ voices** across 35+ languages
 - **99.38% pronunciation accuracy**
+
+## Project Overview
+
+BillBhasha AI is a 10-day project building a production-ready voice assistant for Indian local commerce. Each day added new capabilities:
+
+- **Day 1**: Voice AI pipeline setup with Murf Falcon TTS
+- **Day 2**: System prompts for billing/GST assistance
+- **Day 3**: Frontend UI/UX redesign
+- **Day 4**: Caller memory and personalization
+- **Day 5**: Tools and catalogue integration
+- **Day 6**: Outbound calling capability
+- **Day 7**: Human escalation with support tickets
+- **Day 8**: Call analytics dashboard
+- **Day 9**: Specialist handoff for returns/refunds
+- **Day 10**: Final polish and deployment
 
 ## Architecture
 
@@ -52,8 +76,8 @@ flowchart LR
 ### Step 1: Clone the repo
 
 ```bash
-git clone https://github.com/murf-ai/murf-livekit-starter.git
-cd murf-livekit-starter
+git clone https://github.com/Tanya-garg10/BillBhasha-AI.git
+cd BillBhasha-AI
 ```
 
 ### Step 2: Set up environment variables
@@ -122,7 +146,7 @@ Want to deploy this beyond localhost? You'll need to deploy **two services**: th
 
 ### Backend (Python agent) — Deploy to Railway
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/tIVCF1?referralCode=cNjn2P&utm_medium=integration&utm_source=template&utm_campaign=generic)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2FTanya-garg10%2FBillBhasha-AI)
 
 Set these environment variables in Railway:
 
@@ -137,7 +161,7 @@ The backend runs as a long-lived Python process that connects to LiveKit as an a
 
 ### Frontend (Next.js) — Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/murf-ai/murf-livekit-starter&root-directory=frontend&env=LIVEKIT_URL,LIVEKIT_API_KEY,LIVEKIT_API_SECRET&project-name=murf-voice-agent&repository-name=murf-voice-agent)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Tanya-garg10/BillBhasha-AI&root-directory=frontend&env=LIVEKIT_URL,LIVEKIT_API_KEY,LIVEKIT_API_SECRET&project-name=billbhasha-ai&repository-name=billbhasha-ai)
 
 Set these environment variables in Vercel:
 
@@ -158,31 +182,38 @@ The frontend and backend don't call each other directly — they both connect to
 
 If the agent doesn't connect, double-check that both services point to the same LiveKit project and that the backend is running (check Railway logs).
 
-## Change the Use Case
+## BillBhasha AI Use Case
 
-The default system prompt makes this a **customer support agent**. You can change the agent’s behavior by editing the prompt.
+BillBhasha AI is specifically designed for local commerce and billing assistance in India. The default system prompt makes it a **billing and GST assistant** that helps users understand:
+
+- GST calculations and rates
+- Invoice breakdowns
+- Payment processing fees
+- Return and refund processes
+- Product catalogue and pricing
+- Order tracking and delivery
 
 **Where the prompt lives:** `backend/src/agent.py`- the `SYSTEM_PROMPT` constant (near the top of the file, after the imports). Change that string to change what your voice agent does.
 
-### Example prompts (copy-paste)
+### Specialized Features
 
-**Customer Support (default):**
+BillBhasha AI includes specialized features for local commerce:
 
-```
-You are a friendly and efficient customer support agent for a tech company. Help users with account issues, billing questions, and product troubleshooting. Be concise, empathetic, and solution-oriented. If you don't know something, say so honestly and offer to escalate.
-```
+- **Specialist Handoff**: Automatically routes return/refund issues to a dedicated Returns & Refunds Specialist
+- **Caller Memory**: Remembers user preferences and past conversations
+- **Support Tickets**: Creates structured support tickets for complex issues
+- **Call Analytics**: Tracks call outcomes and provides dashboard insights
+- **Hindi/Hinglish Support**: Natural conversations in mixed Hindi-English
 
-**Language Tutor:**
+### Customizing for Your Use Case
 
-```
-You are a patient and encouraging language tutor helping the user practice conversational Spanish. Speak primarily in Spanish but switch to English to explain grammar or vocabulary when needed. Correct mistakes gently and suggest better phrasing. Keep conversations natural and fun.
-```
+To adapt BillBhasha AI for your specific local commerce use case, modify the `SYSTEM_PROMPT` to include:
 
-**AI Receptionist:**
-
-```
-You are a professional receptionist for a medical clinic. Help callers schedule appointments, answer questions about office hours and services, and take messages for doctors. Be warm but efficient. Ask for the caller's name and reason for calling upfront.
-```
+- Your specific business context
+- Product/service information
+- Policies and procedures
+- Language preferences
+- Specialist agent needs
 
 See the Configuration section below for voice, STT, and LLM options.
 
@@ -218,10 +249,15 @@ Murf Falcon and LiveKit handle audio format internally. For advanced options, se
 ## Project Structure
 
 ```
-murf-livekit-starter/
+BillBhasha-AI/
 ├── backend/                 # Python voice agent (LiveKit Agents + Murf Falcon)
 │   ├── src/
-│   │   └── agent.py         # Agent entrypoint, pipeline (STT/LLM/TTS), system prompt
+│   │   ├── agent.py         # Agent entrypoint, pipeline (STT/LLM/TTS), system prompt
+│   │   ├── memory.py        # Caller memory and analytics database
+│   │   ├── catalogue.py     # Product catalogue and pricing
+│   │   ├── support_tickets.py # Support ticket management
+│   │   ├── refund_specialist.py # Returns & Refunds specialist tools
+│   │   └── analytics_api.py # Analytics API server
 │   ├── tests/               # Agent tests
 │   ├── .env.example         # Backend env template
 │   ├── pyproject.toml       # Python deps (uv)
@@ -229,14 +265,23 @@ murf-livekit-starter/
 ├── frontend/                # Next.js UI for voice sessions
 │   ├── app/
 │   │   ├── page.tsx         # Main page
+│   │   ├── dashboard/       # Analytics dashboard
 │   │   └── api/token/       # LiveKit token endpoint (dev)
-│   ├── components/          # UI (agents-ui, app config, theme)
+│   ├── components/
+│   │   ├── app/             # Custom BillBhasha components
+│   │   │   ├── welcome-view.tsx  # Premium hero section
+│   │   │   ├── voice-orb.tsx     # Animated voice orb
+│   │   │   ├── dashboard.tsx     # Analytics dashboard
+│   │   │   ├── navigation.tsx   # Desktop navigation
+│   │   │   └── mobile-navigation.tsx # Mobile navigation
+│   │   └── agents-ui/       # LiveKit Agents UI components
 │   ├── app-config.ts        # Branding, title, button text, accent
 │   ├── .env.example         # Frontend env template
 │   └── package.json         # Node deps (pnpm)
 ├── start_app.sh             # Start LiveKit + backend + frontend (macOS/Linux)
 ├── start_app.ps1            # Start LiveKit + backend + frontend (Windows)
 ├── README.md                # This file
+└── AGENTS.md                # Agent development guidelines
 ```
 
 For deeper documentation on each part, see:
@@ -254,6 +299,21 @@ For deeper documentation on each part, see:
 - [TTS Latency Benchmarker](https://github.com/sahilsgupta/tts-latency-benchmarker) — run your own p50/p95 tests across providers
 - [Murf Discord](https://discord.gg/FbKAy96Sz7)
 - [Murf Startup Incubator](https://murf.ai/api) — 50M free characters for startups
+- [10 Days of AI Voice Agents — #VoiceForBharat](https://twitter.com/search?q=%23VoiceForBharat) — Daily voice AI builds
+
+## Acknowledgments
+
+Built as part of the **10 Days of AI Voice Agents — #VoiceForBharat** challenge by Tanya Garg.
+
+Powered by:
+- **Murf Falcon** — The fastest production TTS
+- **LiveKit Agents** — Real-time voice AI framework
+- **Google Gemini** — Large Language Model
+- **Deepgram** — Speech-to-Text
+
+## License
+
+MIT License — Copyright (c) 2026 Tanya Garg
 
 ## License
 
