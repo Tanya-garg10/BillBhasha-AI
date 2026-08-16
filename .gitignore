@@ -1,4 +1,26 @@
+# Environment variables
 .env
 .env.*
 !.env.example
+
+# macOS
 .DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+.next/
+.vercel/
+*.log
+

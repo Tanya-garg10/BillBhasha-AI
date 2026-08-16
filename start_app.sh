@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Start all services in background
+# BillBhasha AI - Start all services in background
 if command -v livekit-server >/dev/null 2>&1; then
   livekit-server --dev &
 else

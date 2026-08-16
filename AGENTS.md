@@ -1,13 +1,19 @@
 # AGENTS.md
 
-This is a monorepo for a voice AI agent starter, powered by Murf Falcon TTS and LiveKit Agents.
+This is a monorepo for BillBhasha AI, a voice assistant for local commerce powered by Murf Falcon TTS and LiveKit Agents.
 
 ## Repository structure
 
 ```
-murf-livekit-starter/
+BillBhasha-AI/
 ├── backend/          # Python voice agent (LiveKit Agents + Murf Falcon TTS)
-│   ├── src/agent.py  # Agent entrypoint — all pipeline config lives here
+│   ├── src/
+│   │   ├── agent.py  # Agent entrypoint — all pipeline config lives here
+│   │   ├── memory.py # Caller memory and analytics database
+│   │   ├── catalogue.py # Product catalogue and pricing
+│   │   ├── support_tickets.py # Support ticket management
+│   │   ├── refund_specialist.py # Returns & Refunds specialist tools
+│   │   └── analytics_api.py # Analytics API server
 │   └── tests/        # LLM-judged eval tests
 ├── frontend/         # Next.js UI (LiveKit Agents UI components)
 │   ├── app/          # Pages and API routes
